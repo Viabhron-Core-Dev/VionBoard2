@@ -32,14 +32,13 @@ fun createToolbarKey(context: Context, key: ToolbarKey): ImageButton {
 }
 
 fun setToolbarButtonsActivatedStateOnPrefChange(buttonsGroup: ViewGroup, key: String?) {
-    // settings need to be updated when buttons change
     if (key != Settings.PREF_AUTO_CORRECTION
         && key != Settings.PREF_ALWAYS_INCOGNITO_MODE
         && key?.startsWith(Settings.PREF_ONE_HANDED_MODE_PREFIX) == false)
         return
 
     GlobalScope.launch {
-        delay(10) // need to wait until SettingsValues are reloaded
+        delay(10)
         buttonsGroup.forEach { if (it is ImageButton) setToolbarButtonActivatedState(it) }
     }
 }
@@ -85,6 +84,9 @@ fun getCodeForToolbarKey(key: ToolbarKey) = Settings.getInstance().getCustomTool
     PAGE_START -> KeyCode.MOVE_START_OF_PAGE
     PAGE_END -> KeyCode.MOVE_END_OF_PAGE
     SPLIT -> KeyCode.SPLIT_LAYOUT
+    // VionBoard extensions
+    TIMESTAMP -> KeyCode.TIMESTAMP
+    EMOJI_SEARCH -> KeyCode.EMOJI_SEARCH
 }
 
 fun getCodeForToolbarKeyLongClick(key: ToolbarKey) = Settings.getInstance().getCustomToolbarLongpressCode(key) ?: when (key) {
@@ -103,6 +105,9 @@ fun getCodeForToolbarKeyLongClick(key: ToolbarKey) = Settings.getInstance().getC
     WORD_RIGHT -> KeyCode.MOVE_END_OF_LINE
     PAGE_UP -> KeyCode.MOVE_START_OF_PAGE
     PAGE_DOWN -> KeyCode.MOVE_END_OF_PAGE
+    // VionBoard extensions — no long-press action by default
+    TIMESTAMP -> KeyCode.UNSPECIFIED
+    EMOJI_SEARCH -> KeyCode.UNSPECIFIED
     else -> KeyCode.UNSPECIFIED
 }
 
@@ -110,7 +115,9 @@ fun getCodeForToolbarKeyLongClick(key: ToolbarKey) = Settings.getInstance().getC
 enum class ToolbarKey {
     VOICE, CLIPBOARD, NUMPAD, UNDO, REDO, SETTINGS, SELECT_ALL, SELECT_WORD, COPY, CUT, PASTE, ONE_HANDED, SPLIT,
     INCOGNITO, AUTOCORRECT, CLEAR_CLIPBOARD, CLOSE_HISTORY, EMOJI, LEFT, RIGHT, UP, DOWN, WORD_LEFT, WORD_RIGHT,
-    PAGE_UP, PAGE_DOWN, FULL_LEFT, FULL_RIGHT, PAGE_START, PAGE_END
+    PAGE_UP, PAGE_DOWN, FULL_LEFT, FULL_RIGHT, PAGE_START, PAGE_END,
+    // VionBoard extensions
+    TIMESTAMP, EMOJI_SEARCH
 }
 
 enum class ToolbarMode {
@@ -153,7 +160,6 @@ private fun upgradeToolbarPref(prefs: SharedPreferences, pref: String, default: 
         if (list.none { it.startsWith(keyWithSeparator) })
             list.add("${keyWithSeparator}false")
     }
-    // likely not needed, but better prepare for possibility of key removal
     list.removeAll {
         try {
             ToolbarKey.valueOf(it.substringBefore(Separators.KV))
@@ -172,7 +178,6 @@ fun getPinnedToolbarKeys(prefs: SharedPreferences) = getEnabledToolbarKeys(prefs
 fun getEnabledClipboardToolbarKeys(prefs: SharedPreferences) = getEnabledToolbarKeys(prefs, Settings.PREF_CLIPBOARD_TOOLBAR_KEYS, defaultClipboardToolbarPref)
 
 fun addPinnedKey(prefs: SharedPreferences, key: ToolbarKey) {
-    // remove the existing version of this key and add the enabled one after the last currently enabled key
     val string = prefs.getString(Settings.PREF_PINNED_TOOLBAR_KEYS, defaultPinnedToolbarPref)!!
     val keys = string.split(Separators.ENTRY).toMutableList()
     keys.removeAll { it.startsWith(key.name + Separators.KV) }
@@ -182,7 +187,6 @@ fun addPinnedKey(prefs: SharedPreferences, key: ToolbarKey) {
 }
 
 fun removePinnedKey(prefs: SharedPreferences, key: ToolbarKey) {
-    // just set it to disabled
     val string = prefs.getString(Settings.PREF_PINNED_TOOLBAR_KEYS, defaultPinnedToolbarPref)!!
     val result = string.split(Separators.ENTRY).joinToString(Separators.ENTRY) {
         if (it.startsWith(key.name + Separators.KV))
