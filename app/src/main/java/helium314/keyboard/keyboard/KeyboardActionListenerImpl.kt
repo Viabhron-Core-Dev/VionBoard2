@@ -103,6 +103,18 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         when (primaryCode) {
             KeyCode.TOGGLE_AUTOCORRECT -> return settings.toggleAutoCorrect()
             KeyCode.TOGGLE_INCOGNITO_MODE -> return settings.toggleAlwaysIncognitoMode()
+
+            // VionBoard: SELECT_ALL fix for web code editors (GitHub, Codeberg, GitLab, etc.)
+            // Browser web text fields use JavaScript input handling and do not respond to
+            // Android's performContextMenuAction(selectAll) via InputConnection.
+            // Sending a real Ctrl+A KeyEvent reaches the browser JS engine like a physical keyboard.
+            KeyCode.CLIPBOARD_SELECT_ALL -> {
+                if (isWebCodeEditorContext()) {
+                    sendCtrlAKeyEvent()
+                    return
+                }
+                // not a web editor — fall through to normal handling below
+            }
         }
         val mkv = keyboardSwitcher.mainKeyboardView
 
@@ -110,16 +122,43 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         val event = if (primaryCode in combiningRange) { // todo: should this be done later, maybe in inputLogic?
             Event.createSoftwareDeadEvent(primaryCode, 0, metaState, mkv.getKeyX(x), mkv.getKeyY(y), null)
         } else {
-            // todo:
-            //  setting meta shift should only be done for arrow and similar cursor movement keys
-            //  should only be enabled once it works more reliably (currently depends on app for some reason)
-//            if (mkv.keyboard?.mId?.isAlphabetShiftedManually == true)
-//                Event.createSoftwareKeypressEvent(primaryCode, metaState or KeyEvent.META_SHIFT_ON, mkv.getKeyX(x), mkv.getKeyY(y), isKeyRepeat)
-//            else Event.createSoftwareKeypressEvent(primaryCode, metaState, mkv.getKeyX(x), mkv.getKeyY(y), isKeyRepeat)
             Event.createSoftwareKeypressEvent(primaryCode, metaState, mkv.getKeyX(x), mkv.getKeyY(y), isKeyRepeat)
         }
         latinIME.onEvent(event)
         metaAfterCodeInput(primaryCode)
+    }
+
+    /**
+     * Returns true when the current input target is a web text field inside a browser.
+     * This is the reliable proxy for "GitHub / Codeberg / GitLab / any web code editor":
+     * those sites all use CodeMirror or Monaco inside a browser, which sets the input type
+     * variation to TYPE_TEXT_VARIATION_WEB_EDIT_TEXT.
+     * We additionally check known browser package names as a secondary signal.
+     */
+    private fun isWebCodeEditorContext(): Boolean {
+        val inputType = Settings.getValues().mInputAttributes.mInputType
+        val variation = InputType.TYPE_MASK_VARIATION and inputType
+        if (variation == InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT) return true
+
+        // secondary check: is the foreground app a known browser?
+        val pkg = latinIME.currentInputEditorInfo?.packageName ?: return false
+        return pkg in BROWSER_PACKAGES
+    }
+
+    /**
+     * Sends a real Ctrl+A hardware key event pair through the InputConnection.
+     * This reaches the browser's JavaScript engine and correctly selects all text
+     * in web-based code editors (CodeMirror, Monaco, etc.).
+     */
+    private fun sendCtrlAKeyEvent() {
+        val ic = latinIME.currentInputConnection ?: return
+        val downTime = System.currentTimeMillis()
+        val down = KeyEvent(downTime, downTime, KeyEvent.ACTION_DOWN,
+            KeyEvent.KEYCODE_A, 0, KeyEvent.META_CTRL_ON)
+        val up = KeyEvent(downTime, System.currentTimeMillis(), KeyEvent.ACTION_UP,
+            KeyEvent.KEYCODE_A, 0, KeyEvent.META_CTRL_ON)
+        ic.sendKeyEvent(down)
+        ic.sendKeyEvent(up)
     }
 
     override fun onTextInput(text: String?) = latinIME.onTextInput(text)
@@ -293,18 +332,9 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             gestureMoveForwardHaptics(text.isNotEmpty())
         }
 
-        // the shortcut below causes issues due to horrible handling of text fields by Firefox and forks
-        // issues:
-        //  * setSelection "will cause the editor to call onUpdateSelection", see: https://developer.android.com/reference/android/view/inputmethod/InputConnection#setSelection(int,%20int)
-        //     but Firefox is simply not doing this within the same word... WTF?
-        //     https://github.com/Helium314/HeliBoard/issues/1139#issuecomment-2588169384
-        //  * inputType is NOT of variant InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT (variant appears to always be 0)
-        //     -> this is "fixed" now using AppWorkarounds.adjustInputType
         val variation = InputType.TYPE_MASK_VARIATION and Settings.getValues().mInputAttributes.mInputType
         if (variation != InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT
                 && inputLogic.moveCursorByAndReturnIfInsideComposingWord(moveSteps)) {
-            // no need to finish input and restart suggestions if we're still in the word
-            // this is a noticeable performance improvement when moving through long words
             val newPosition = connection.expectedSelectionStart + moveSteps
             connection.setSelection(newPosition, newPosition)
             return true
@@ -319,11 +349,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
 
     private fun positiveMoveSteps(text: CharSequence, steps: Int): Int {
         var actualSteps = 0
-        // corrected steps to avoid splitting chars belonging to the same codepoint
         loopOverCodePoints(text) { cp, charCount ->
-            // For emojis we (incorrectly) return 0 so the move is handled by virtual arrow key presses.
-            // This is a simple workaround to avoid determining the correct character count, which can
-            // be tricky because in some cases older Android versions show two emojis where newer ones show one.
             if (StringUtils.mightBeEmoji(cp)) return 0
             actualSteps += charCount
             actualSteps >= steps
@@ -333,11 +359,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
 
     private fun negativeMoveSteps(text: CharSequence, steps: Int): Int {
         var actualSteps = 0
-        // corrected steps to avoid splitting chars belonging to the same codepoint
         loopOverCodePointsBackwards(text) { cp, charCount ->
-            // For emojis we (incorrectly) return 0 so the move is handled by virtual arrow key presses.
-            // This is a simple workaround to avoid determining the correct character count, which can
-            // be tricky because in some cases older Android versions show two emojis where newer ones show one.
             if (StringUtils.mightBeEmoji(cp)) return 0
             actualSteps -= charCount
             actualSteps <= steps
@@ -351,7 +373,6 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         }
     }
 
-    // hasTextAfterCursor is used because text before the cursor is cached, going through the InputConnection can be slow
     private fun gestureMoveForwardHaptics(hasTextAfterCursor: Boolean? = null) {
         if (hasTextAfterCursor ?: connection.hasTextAfterCursor()) {
             performHapticFeedback(HapticEvent.GESTURE_MOVE)
@@ -364,8 +385,6 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
 
     private fun getHardwareKeyEventDecoder(deviceId: Int): HardwareEventDecoder {
         hardwareEventDecoders.get(deviceId)?.let { return it }
-
-        // TODO: create the decoder according to the specification
         val newDecoder = HardwareKeyboardEventDecoder(deviceId)
         hardwareEventDecoders.put(deviceId, newDecoder)
         return newDecoder
@@ -373,29 +392,12 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
 
     // -------------------------- meta state handling -----------------------------
 
-    // current state
-    // press enables meta
-    // release keeps meta enabled, unless there was a onCodeInput for a different key in between
-    // onCodeInput ends the meta if it was enabled
-    // long press on meta key also ends meta so popups are handled properly
-    // sliding from a meta key to some other words too, though this was not intended (and there are no sliding key input graphics)
-
-    // todo: move meta state tracking to KeyboardState? seems more suitable, also for handling sliding input
-    //  but the issue is that meta state is used in Event to determine whether it's a functional Event (does not add a character)
-    //  (and also it's in the hardware keyEvents which are handled by onKeyUp/Down, but that should be manageable)
-
-    /** actual Android metaState like in KeyEvent */
     private var metaState = 0
-
-    /** keeps track of the state of meta keys by (HeliBoard) KeyCodes */
     private val metaPressStates = SparseArray<MetaPressState>(4)
 
-    // todo: lock and non-lock versions interact badly: when any of them is released, the meta state is removed
-    //  this is not wanted, especially because the state of the other key is not affected (still looks pressed)
     private fun metaOnPressKey(primaryCode: Int) {
         val metaCode = primaryCode.toMetaState() ?: return
         if (primaryCode.isMetaLock()) {
-            // if unset -> lock, otherwise set to UNSET_ON_RELEASE so it's unset on release
             if (metaPressStates[primaryCode] != MetaPressState.LOCKED) {
                 metaPressStates[primaryCode] = MetaPressState.LOCKED
                 keyboardSwitcher.mainKeyboardView?.updateLockState(primaryCode, true)
@@ -406,20 +408,15 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             return
         }
         if (metaPressStates[primaryCode] == MetaPressState.RELEASED_BUT_ACTIVE) {
-            // meta key is pressed again without other input -> should be disabled on release
             metaPressStates[primaryCode] = MetaPressState.UNSET_ON_RELEASE
         } else {
-            // otherwise just press it normally
             metaPressStates[primaryCode] = MetaPressState.PRESSED
         }
         metaState = metaState or metaCode
-        // pressed graphics are set anyway, no need to lock it
     }
 
-    // looks like this is not called if there are no popups
     private fun metaOnLongPressKey(primaryCode: Int) {
         if (metaPressStates[primaryCode] != MetaPressState.PRESSED) return
-        // we long-pressed a meta key that has popups -> disable so the meta state is not used for the popup
         metaPressStates[primaryCode] = MetaPressState.UNSET
         keyboardSwitcher.mainKeyboardView?.updateLockState(primaryCode, false)
         val metaCode = primaryCode.toMetaState() ?: return
@@ -442,7 +439,6 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     private fun metaAfterCodeInput(primaryCode: Int) {
         val metaCode = primaryCode.toMetaState()
         if (metaCode != null) {
-            // meta key might be a popup key, we just toggle between set and unset
             val metaPressState = metaPressStates[primaryCode] ?: MetaPressState.UNSET
             if (metaPressState == MetaPressState.UNSET) {
                 metaPressStates[primaryCode] = MetaPressState.SET
@@ -454,7 +450,6 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
                 keyboardSwitcher.mainKeyboardView?.updateLockState(primaryCode, false)
             }
         } else if (metaState != 0) {
-            // non-meta key -> unset all set / released_but_active, and mark pressed as UNSET_ON_RELEASE
             metaPressStates.forEach { key, value ->
                 if (value == MetaPressState.RELEASED_BUT_ACTIVE || value == MetaPressState.SET) {
                     metaPressStates[key] = MetaPressState.UNSET
@@ -470,12 +465,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
 
     companion object {
         private enum class MetaPressState {
-            UNSET, // default state, not active
-            SET, // enabled without onPressKey (e.g. in popup)
-            PRESSED, // key is pressed
-            UNSET_ON_RELEASE, // key is pressed, but state will be unset on release
-            RELEASED_BUT_ACTIVE, // key was released without UNSET_ON_RELEASE state, meta state is still set
-            LOCKED, // key is locked and will be released only by pressing the same key again
+            UNSET, SET, PRESSED, UNSET_ON_RELEASE, RELEASED_BUT_ACTIVE, LOCKED,
         }
 
         private fun Int.toMetaState() = when (this) {
@@ -492,6 +482,33 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             else -> null
         }
 
-        private fun Int.isMetaLock() = this == KeyCode.CTRL_LOCK || this == KeyCode.ALT_LOCK || this == KeyCode.FN_LOCK || this == KeyCode.META_LOCK
+        private fun Int.isMetaLock() =
+            this == KeyCode.CTRL_LOCK || this == KeyCode.ALT_LOCK ||
+            this == KeyCode.FN_LOCK   || this == KeyCode.META_LOCK
+
+        /**
+         * Known browser packages whose web text fields break Android's InputConnection select-all.
+         * When SELECT_ALL is triggered inside one of these apps, we send Ctrl+A instead.
+         */
+        private val BROWSER_PACKAGES = setOf(
+            "com.android.chrome",
+            "org.chromium.chrome",
+            "com.chrome.beta",
+            "com.chrome.dev",
+            "com.chrome.canary",
+            "org.mozilla.firefox",
+            "org.mozilla.firefox_beta",
+            "org.mozilla.fenix",
+            "com.brave.browser",
+            "com.brave.browser_beta",
+            "com.microsoft.emmx",           // Edge
+            "com.opera.browser",
+            "com.opera.browser.beta",
+            "com.vivaldi.browser",
+            "com.kiwibrowser.browser",
+            "com.duckduckgo.mobile.android",
+            "com.sec.android.app.sbrowser", // Samsung Internet
+            "org.torproject.torbrowser",
+        )
     }
 }
