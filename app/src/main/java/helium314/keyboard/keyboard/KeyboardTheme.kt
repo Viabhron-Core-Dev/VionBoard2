@@ -48,7 +48,7 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
         const val STYLE_HOLO = "Holo"
         const val STYLE_ROUNDED = "Rounded"
 
-        // new themes that are just colors
+        // built-in color themes
         const val THEME_LIGHT = "light"
         const val THEME_HOLO_WHITE = "holo_white"
         const val THEME_DARK = "dark"
@@ -65,6 +65,12 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
         const val THEME_PINK = "pink"
         const val THEME_SAND = "sand"
         const val THEME_VIOLETTE = "violette"
+
+        // VionBoard themes
+        const val THEME_VION_NORMAL = "vion_normal"
+        const val THEME_VION_COSMOS = "vion_cosmos"
+        const val THEME_VION_ELECTRICITY = "vion_electricity"
+
         fun getAvailableDefaultColors(prefs: SharedPreferences, isNight: Boolean) = listOfNotNull(
             if (!isNight) THEME_LIGHT else null, THEME_DARK,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) THEME_DYNAMIC else null,
@@ -80,7 +86,11 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
             if (!isNight) THEME_PINK else null,
             THEME_OCEAN,
             if (!isNight) THEME_SAND else null,
-            THEME_VIOLETTE
+            THEME_VIOLETTE,
+            // VionBoard themes — available in both day and night
+            if (!isNight) THEME_VION_NORMAL else null,
+            THEME_VION_COSMOS,
+            THEME_VION_ELECTRICITY
         )
         val STYLES = arrayOf(STYLE_MATERIAL, STYLE_HOLO, STYLE_ROUNDED)
 
@@ -336,6 +346,63 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
                     Color.WHITE,
                     keyboardBackground = backgroundImage
                 )
+
+                // ── VionBoard themes ───────────────────────────────────────────────────────
+                //
+                // VION_NORMAL — clean, light, minimal; inspired by the reference screenshot.
+                // White rounded keys on light-gray background; dark text; gray modifiers.
+                THEME_VION_NORMAL -> DefaultColors(
+                    themeStyle,
+                    hasBorders,
+                    Color.rgb(92, 122, 255),   // accent: soft blue
+                    Color.rgb(232, 232, 232),  // background: light gray
+                    Color.rgb(255, 255, 255),  // keys: white
+                    Color.rgb(192, 192, 192),  // functional keys: mid gray
+                    Color.rgb(255, 255, 255),  // spacebar: white
+                    Color.rgb(26,  26,  26),   // text: near black
+                    Color.rgb(136, 136, 136),  // hint text: medium gray
+                    keyboardBackground = backgroundImage
+                )
+
+                // VION_COSMOS — deep space palette.
+                // Near-black background with dark navy-blue keys; stars feel via ice-white text
+                // and vivid purple accent — pure color, no image asset needed.
+                THEME_VION_COSMOS -> DefaultColors(
+                    themeStyle,
+                    hasBorders,
+                    Color.rgb(102, 68, 204),   // accent: deep purple (like nebula glow)
+                    Color.rgb(10,  10,  26),   // background: deep space black-blue
+                    Color.rgb(26,  26,  58),   // keys: dark blue-purple
+                    Color.rgb(13,  13,  42),   // functional keys: darker navy
+                    Color.rgb(26,  26,  58),   // spacebar: same as keys
+                    Color.rgb(224, 232, 255),  // text: ice white-blue
+                    Color.rgb(136, 153, 204),  // hint text: muted starlight blue
+                    Color.rgb(200, 210, 255),  // suggestion text: soft blue
+                    Color.argb(128, 180, 190, 255), // spacebar text: semi-transparent
+                    Color.rgb(102, 68, 204),   // gesture trail: purple
+                    backgroundImage
+                )
+
+                // VION_ELECTRICITY — electric grid palette.
+                // Near-black background with dark-navy keys; neon cyan text gives the
+                // impression of glowing circuit lines without needing any drawable.
+                THEME_VION_ELECTRICITY -> DefaultColors(
+                    themeStyle,
+                    hasBorders,
+                    Color.rgb(0,  204, 255),   // accent: electric cyan
+                    Color.rgb(5,   5,  16),    // background: near-black
+                    Color.rgb(10,  16,  32),   // keys: dark navy
+                    Color.rgb(6,   8,  24),    // functional keys: deeper navy
+                    Color.rgb(10,  16,  32),   // spacebar: same as keys
+                    Color.rgb(0,  204, 255),   // text: electric cyan
+                    Color.rgb(0,  102, 255),   // hint text: bright blue
+                    Color.rgb(0,  204, 255),   // suggestion text: cyan
+                    Color.argb(153, 0, 204, 255), // spacebar text: 60% cyan
+                    Color.rgb(0,  204, 255),   // gesture trail: cyan
+                    backgroundImage
+                )
+                // ── end VionBoard themes ───────────────────────────────────────────────────
+
                 else -> { // user-defined theme
                     val colorSettings = readUserColors(prefs, themeName)
                     val colors = readUserColorTheme(themeStyle, hasBorders, colorSettings, context, isNight, backgroundImage)
