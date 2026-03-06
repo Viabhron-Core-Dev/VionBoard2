@@ -11,6 +11,7 @@ import java.io.File
 class Database private constructor(context: Context, name: String = NAME) : SQLiteOpenHelper(context, name, null, VERSION) {
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(ClipboardDao.CREATE_TABLE)
+        db.execSQL(ShortcutsDao.CREATE_TABLE)
         onUpgrade(db, 0, VERSION)
     }
 
@@ -18,11 +19,14 @@ class Database private constructor(context: Context, name: String = NAME) : SQLi
         if (oldVersion <= 1) {
             db.execSQL(GestureDataDao.CREATE_TABLE)
         }
+        if (oldVersion <= 2) {
+            db.execSQL(ShortcutsDao.CREATE_TABLE)
+        }
     }
 
     companion object {
         private val TAG = Database::class.java.simpleName
-        private const val VERSION = 2
+        private const val VERSION = 3
         const val NAME = "heliboard.db"
         private var instance: Database? = null
         fun getInstance(context: Context): Database {
