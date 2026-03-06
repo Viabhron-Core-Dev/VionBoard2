@@ -81,8 +81,6 @@ class KeyboardIconsSet private constructor() {
         const val NAME_TOOLBAR_KEY = "toolbar_key"
         const val NAME_BIN = "bin"
 
-        // names used in the past, and we can't just delete them because they might still be in use in some layouts
-        // (also some of them are in use for internal layouts, but there we could just remove them...)
         private val alternativeNames = hashMapOf(
             "clear_clipboard_key" to ToolbarKey.CLEAR_CLIPBOARD.name.lowercase(Locale.US),
             "shortcut_key" to ToolbarKey.VOICE.name.lowercase(Locale.US),
@@ -96,20 +94,13 @@ class KeyboardIconsSet private constructor() {
             "start_onehanded_mode_key" to ToolbarKey.ONE_HANDED.name.lowercase(Locale.US),
         )
 
-        // todo: incognito and force incognito should not be the same? or not the same as toolbar key?
         private val keyboardIconsHolo by lazy { hashMapOf(
             NAME_SHIFT_KEY to                   R.drawable.sym_keyboard_shift_holo,
             NAME_SHIFT_KEY_SHIFTED to           R.drawable.sym_keyboard_shifted_holo,
             NAME_SHIFT_KEY_LOCKED to            R.drawable.sym_keyboard_shift_lock_holo,
             NAME_DELETE_KEY to                  R.drawable.sym_keyboard_delete_holo,
-//            NAME_SPACE_KEY to                   null,
             NAME_ENTER_KEY to                   R.drawable.sym_keyboard_return_holo,
-//            NAME_GO_KEY to                      null,
             NAME_SEARCH_KEY to                  R.drawable.sym_keyboard_search_holo,
-//            NAME_SEND_KEY to                    null,
-//            NAME_DONE_KEY to                    null,
-//            NAME_NEXT_KEY to                    null,
-//            NAME_PREVIOUS_KEY to                null,
             NAME_TAB_KEY to                     R.drawable.sym_keyboard_tab_holo,
             NAME_SPACE_KEY_FOR_NUMBER_LAYOUT to R.drawable.sym_keyboard_space_holo,
             NAME_SHORTCUT_KEY_DISABLED to       R.drawable.sym_keyboard_voice_off_holo,
@@ -154,6 +145,9 @@ class KeyboardIconsSet private constructor() {
                     ToolbarKey.PAGE_START -> R.drawable.ic_page_start
                     ToolbarKey.PAGE_END -> R.drawable.ic_page_end
                     ToolbarKey.SPLIT -> R.drawable.ic_ime_switcher
+                    // VionBoard extensions — reuse nearest existing icons until dedicated ones are added
+                    ToolbarKey.TIMESTAMP -> R.drawable.ic_undo       // placeholder: circular/time feel
+                    ToolbarKey.EMOJI_SEARCH -> R.drawable.sym_keyboard_smiley_holo
                 })
             }
         } }
@@ -163,7 +157,6 @@ class KeyboardIconsSet private constructor() {
             NAME_SHIFT_KEY_SHIFTED to           R.drawable.sym_keyboard_shift_lxx,
             NAME_SHIFT_KEY_LOCKED to            R.drawable.sym_keyboard_shift_lock_lxx,
             NAME_DELETE_KEY to                  R.drawable.sym_keyboard_delete_lxx,
-//            NAME_SPACE_KEY to                   null,
             NAME_ENTER_KEY to                   R.drawable.sym_keyboard_return_lxx,
             NAME_GO_KEY to                      R.drawable.sym_keyboard_go_lxx,
             NAME_SEARCH_KEY to                  R.drawable.sym_keyboard_search_lxx,
@@ -215,6 +208,9 @@ class KeyboardIconsSet private constructor() {
                     ToolbarKey.PAGE_START -> R.drawable.ic_page_start
                     ToolbarKey.PAGE_END -> R.drawable.ic_page_end
                     ToolbarKey.SPLIT -> R.drawable.ic_ime_switcher
+                    // VionBoard extensions — reuse nearest existing icons until dedicated ones are added
+                    ToolbarKey.TIMESTAMP -> R.drawable.ic_undo       // placeholder: circular/time feel
+                    ToolbarKey.EMOJI_SEARCH -> R.drawable.sym_keyboard_smiley_lxx
                 })
             }
         } }
@@ -224,7 +220,6 @@ class KeyboardIconsSet private constructor() {
             NAME_SHIFT_KEY_SHIFTED to           R.drawable.sym_keyboard_shift_rounded,
             NAME_SHIFT_KEY_LOCKED to            R.drawable.sym_keyboard_shift_lock_rounded,
             NAME_DELETE_KEY to                  R.drawable.sym_keyboard_delete_rounded,
-//            NAME_SPACE_KEY to                   null,
             NAME_ENTER_KEY to                   R.drawable.sym_keyboard_return_rounded,
             NAME_GO_KEY to                      R.drawable.sym_keyboard_go_rounded,
             NAME_SEARCH_KEY to                  R.drawable.sym_keyboard_search_rounded,
@@ -276,12 +271,14 @@ class KeyboardIconsSet private constructor() {
                     ToolbarKey.PAGE_START -> R.drawable.ic_page_start_rounded
                     ToolbarKey.PAGE_END -> R.drawable.ic_page_end_rounded
                     ToolbarKey.SPLIT -> R.drawable.ic_ime_switcher
+                    // VionBoard extensions — reuse nearest existing icons until dedicated ones are added
+                    ToolbarKey.TIMESTAMP -> R.drawable.ic_undo_rounded  // placeholder
+                    ToolbarKey.EMOJI_SEARCH -> R.drawable.sym_keyboard_smiley_rounded
                 })
             }
         } }
 
         fun getAllIcons(context: Context): Map<String, List<Int>> {
-            // currently active style first
             val iconStyle = context.prefs().getString(Settings.PREF_ICON_STYLE, Defaults.PREF_ICON_STYLE)
             return keyboardIconsMaterial.entries.associate { (name, id) ->
                 name to when (iconStyle) {
