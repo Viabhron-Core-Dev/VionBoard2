@@ -21,7 +21,7 @@ import java.io.File
  */
 object VionVaultManager {
 
-    private const val PREFS_NAME    = "vion_vault"
+    private const val PREFS_NAME     = "vion_vault"
     private const val KEY_VAULT_PATH = "vault_path"
     private const val KEY_AUTO_MATCH = "auto_match"
 
@@ -38,10 +38,6 @@ object VionVaultManager {
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
-    /**
-     * Register a screen-off receiver so the vault locks when the screen turns off.
-     * Safe to call multiple times — only registers once.
-     */
     fun init(context: Context) {
         if (screenOffReceiver != null) return
         screenOffReceiver = object : BroadcastReceiver() {
@@ -60,11 +56,10 @@ object VionVaultManager {
     /**
      * Unlock the vault with [password].
      * Returns true on success, false on wrong password or corrupt file.
-     * On success the entry list is populated and [isUnlocked] becomes true.
      */
     fun unlock(vaultFile: File, password: String): Boolean {
         return try {
-            _entries = VionVaultRepository.openVault(vaultFile, password)
+            _entries = VionVaultRepository.loadFromFile(vaultFile, password).getOrThrow()
             _isUnlocked = true
             true
         } catch (_: Exception) {
@@ -74,11 +69,6 @@ object VionVaultManager {
         }
     }
 
-    /**
-     * Clear the session.
-     * Called automatically on screen off; can also be called explicitly
-     * (e.g. when the user switches away from the vault panel).
-     */
     fun lock() {
         _isUnlocked = false
         _entries = emptyList()
@@ -86,16 +76,6 @@ object VionVaultManager {
 
     // ── Entry lookup ──────────────────────────────────────────────────────────
 
-    /**
-     * Return entries relevant to [packageName].
-     *
-     * Matching strategy (best-effort heuristic — no URL access from IME):
-     *  - Split the package name into meaningful segments (length > 3, not "android"/"google"/"com")
-     *  - Match if any segment appears in the entry URL or title (case-insensitive)
-     *
-     * Returns all entries if [packageName] is null or auto-match is disabled.
-     * Returns empty list when vault is locked.
-     */
     fun getEntriesForPackage(packageName: String?): List<VionVaultEntry> {
         if (!_isUnlocked) return emptyList()
         if (packageName == null) return _entries
@@ -109,10 +89,6 @@ object VionVaultManager {
         }
     }
 
-    /**
-     * Search entries by [query] string across title, username, and URL fields.
-     * Used by the vault panel search bar. Returns empty list when locked.
-     */
     fun search(query: String): List<VionVaultEntry> {
         if (!_isUnlocked || query.isBlank()) return _entries
         val q = query.trim().lowercase()
@@ -125,27 +101,22 @@ object VionVaultManager {
 
     // ── Persistence ───────────────────────────────────────────────────────────
 
-    /** Persist the path of the active vault file across sessions. */
     fun saveVaultPath(context: Context, path: String) {
         prefs(context).edit().putString(KEY_VAULT_PATH, path).apply()
     }
 
-    /** Retrieve the previously saved vault file path, or null if none. */
     fun loadVaultPath(context: Context): String? =
         prefs(context).getString(KEY_VAULT_PATH, null)
 
-    /** Retrieve the active vault file if its path is saved and the file exists. */
     fun loadVaultFile(context: Context): File? {
         val path = loadVaultPath(context) ?: return null
         return File(path).takeIf { it.exists() }
     }
 
-    /** Save whether auto-match by app package should be used. */
     fun saveAutoMatch(context: Context, enabled: Boolean) {
         prefs(context).edit().putBoolean(KEY_AUTO_MATCH, enabled).apply()
     }
 
-    /** Whether auto-match by app package is enabled (default: true). */
     fun isAutoMatchEnabled(context: Context): Boolean =
         prefs(context).getBoolean(KEY_AUTO_MATCH, true)
 
@@ -154,7 +125,6 @@ object VionVaultManager {
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    /** Package name segments that are too generic to be useful for matching. */
     private val IGNORED_SEGMENTS = setOf(
         "android", "google", "com", "org", "net", "app", "www",
         "mobile", "browser", "client", "main", "base",
