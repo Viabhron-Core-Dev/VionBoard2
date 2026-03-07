@@ -30,24 +30,22 @@ android {
             isDebuggable = false
             isJniDebuggable = false
         }
-        create("nouserlib") { // same as release, but does not allow the user to provide a library
+        create("nouserlib") {
             isMinifyEnabled = true
             isShrinkResources = false
             isDebuggable = false
             isJniDebuggable = false
         }
         debug {
-            // "normal" debug has minify for smaller APK to fit the GitHub 25 MB limit when zipped
-            // and for better performance in case users want to install a debug APK
             isMinifyEnabled = true
             isJniDebuggable = false
             applicationIdSuffix = ".debug"
         }
-        create("runTests") { // build variant for running tests on CI that skips tests known to fail
+        create("runTests") {
             isMinifyEnabled = false
             isJniDebuggable = false
         }
-        create("debugNoMinify") { // for faster builds in IDE
+        create("debugNoMinify") {
             isDebuggable = true
             isMinifyEnabled = false
             isJniDebuggable = false
@@ -55,12 +53,11 @@ android {
             applicationIdSuffix = ".debug"
         }
         base.archivesBaseName = "VionBoard_" + defaultConfig.versionName
-        // got a little too big for GitHub after some dependency upgrades, so we remove the largest dictionary
         androidComponents.onVariants { variant: ApplicationVariant ->
             if (variant.buildType == "debug") {
                 variant.androidResources.ignoreAssetsPatterns = listOf("main_ro.dict")
                 variant.proguardFiles = emptyList()
-                //noinspection ProguardAndroidTxtUsage we intentionally use the "normal" file here
+                //noinspection ProguardAndroidTxtUsage
                 variant.proguardFiles.add(project.layout.buildDirectory.file(getDefaultProguardFile("proguard-android.txt").absolutePath))
                 variant.proguardFiles.add(project.layout.buildDirectory.file(project.buildFile.parent + "/proguard-rules.pro"))
             }
@@ -82,7 +79,6 @@ android {
 
     packaging {
         jniLibs {
-            // shrinks APK by 3 MB, zipped size unchanged
             useLegacyPackaging = true
         }
     }
@@ -102,7 +98,6 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
-    // see https://github.com/Helium314/HeliBoard/issues/477
     dependenciesInfo {
         includeInApk = false
         includeInBundle = false
@@ -116,7 +111,7 @@ android {
 
 dependencies {
     // androidx
-    implementation("androidx.core:core-ktx:1.16.0") // 1.17 requires SDK 36
+    implementation("androidx.core:core-ktx:1.16.0")
     implementation("androidx.recyclerview:recyclerview:1.4.0")
     implementation("androidx.autofill:autofill:1.3.0")
     implementation("androidx.viewpager2:viewpager2:1.1.0")
@@ -129,15 +124,17 @@ dependencies {
 
     // compose
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
-    // newer than 2025.11.01 contains androidx.compose.material:material-android:1.10.0, which requires minSdk 23
-    // maybe it's possible to use tools:overrideLibrary="androidx.compose.material" as it's not used explicitly, but probably this is just going to crash
     implementation(platform("androidx.compose:compose-bom:2025.11.01"))
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.navigation:navigation-compose:2.9.6")
-    implementation("sh.calvin.reorderable:reorderable:2.4.3") // for easier re-ordering, todo: check 3.0.0
-    implementation("com.github.skydoves:colorpicker-compose:1.1.3") // for user-defined colors
+    implementation("sh.calvin.reorderable:reorderable:2.4.3")
+    implementation("com.github.skydoves:colorpicker-compose:1.1.3")
+
+    // VionBoard Phase 8 — KeePass KDBX reading
+    // artifact was renamed from io.github.anvell:kotpass to app.keemobile:kotpass
+    implementation("app.keemobile:kotpass:0.13.0")
 
     // test
     testImplementation(kotlin("test"))
