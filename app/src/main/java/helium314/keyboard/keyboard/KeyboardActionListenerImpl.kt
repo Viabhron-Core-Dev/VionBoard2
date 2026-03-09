@@ -104,6 +104,12 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             KeyCode.TOGGLE_AUTOCORRECT -> return settings.toggleAutoCorrect()
             KeyCode.TOGGLE_INCOGNITO_MODE -> return settings.toggleAlwaysIncognitoMode()
 
+            // VionBoard: open KeePass vault panel
+            KeyCode.VION_VAULT -> {
+                latinIME.launchVaultActivity()
+                return
+            }
+
             // VionBoard: SELECT_ALL fix for web code editors (GitHub, Codeberg, GitLab, etc.)
             // Browser web text fields use JavaScript input handling and do not respond to
             // Android's performContextMenuAction(selectAll) via InputConnection.
@@ -302,8 +308,6 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             val text = connection.getTextBeforeCursor(-steps * 4, 0) ?: return false
             moveSteps = negativeMoveSteps(text, steps)
             if (moveSteps == 0) {
-                // some apps don't return any text via input connection, and the cursor can't be moved
-                // we fall back to virtually pressing the left/right key one or more times instead
                 repeat(-steps) {
                     onCodeInput(if (rtl) KeyCode.ARROW_RIGHT else KeyCode.ARROW_LEFT, Constants.NOT_A_COORDINATE,
                         Constants.NOT_A_COORDINATE, false)
@@ -318,8 +322,6 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             val text = connection.getTextAfterCursor(steps * 4, 0) ?: return false
             moveSteps = positiveMoveSteps(text, steps)
             if (moveSteps == 0) {
-                // some apps don't return any text via input connection, and the cursor can't be moved
-                // we fall back to virtually pressing the left/right key one or more times instead
                 repeat(steps) {
                     onCodeInput(if (rtl) KeyCode.ARROW_LEFT else KeyCode.ARROW_RIGHT, Constants.NOT_A_COORDINATE,
                         Constants.NOT_A_COORDINATE, false)
