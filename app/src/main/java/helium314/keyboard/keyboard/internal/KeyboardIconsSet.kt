@@ -96,7 +96,7 @@ class KeyboardIconsSet private constructor() {
 
         private val keyboardIconsHolo by lazy { hashMapOf(
             NAME_SHIFT_KEY to                   R.drawable.sym_keyboard_shift_holo,
-            NAME_SHIFT_KEY_SHIFTED to           R.drawable.sym_keyboard_shifted_holo,
+            NAME_SHIFT_KEY_SHIFTED to           R.drawable.sym_keyboard_shift_holo,
             NAME_SHIFT_KEY_LOCKED to            R.drawable.sym_keyboard_shift_lock_holo,
             NAME_DELETE_KEY to                  R.drawable.sym_keyboard_delete_holo,
             NAME_ENTER_KEY to                   R.drawable.sym_keyboard_return_holo,
@@ -145,9 +145,10 @@ class KeyboardIconsSet private constructor() {
                     ToolbarKey.PAGE_START -> R.drawable.ic_page_start
                     ToolbarKey.PAGE_END -> R.drawable.ic_page_end
                     ToolbarKey.SPLIT -> R.drawable.ic_ime_switcher
-                    // VionBoard extensions — reuse nearest existing icons until dedicated ones are added
-                    ToolbarKey.TIMESTAMP -> R.drawable.ic_undo       // placeholder: circular/time feel
+                    ToolbarKey.TIMESTAMP -> R.drawable.ic_undo
                     ToolbarKey.EMOJI_SEARCH -> R.drawable.sym_keyboard_smiley_holo
+                    // VionBoard: vault key — reuse clipboard icon as placeholder
+                    ToolbarKey.VION_VAULT -> R.drawable.sym_keyboard_clipboard_holo
                 })
             }
         } }
@@ -208,9 +209,10 @@ class KeyboardIconsSet private constructor() {
                     ToolbarKey.PAGE_START -> R.drawable.ic_page_start
                     ToolbarKey.PAGE_END -> R.drawable.ic_page_end
                     ToolbarKey.SPLIT -> R.drawable.ic_ime_switcher
-                    // VionBoard extensions — reuse nearest existing icons until dedicated ones are added
-                    ToolbarKey.TIMESTAMP -> R.drawable.ic_undo       // placeholder: circular/time feel
+                    ToolbarKey.TIMESTAMP -> R.drawable.ic_undo
                     ToolbarKey.EMOJI_SEARCH -> R.drawable.sym_keyboard_smiley_lxx
+                    // VionBoard: vault key — reuse clipboard icon as placeholder
+                    ToolbarKey.VION_VAULT -> R.drawable.sym_keyboard_clipboard_lxx
                 })
             }
         } }
@@ -271,9 +273,10 @@ class KeyboardIconsSet private constructor() {
                     ToolbarKey.PAGE_START -> R.drawable.ic_page_start_rounded
                     ToolbarKey.PAGE_END -> R.drawable.ic_page_end_rounded
                     ToolbarKey.SPLIT -> R.drawable.ic_ime_switcher
-                    // VionBoard extensions — reuse nearest existing icons until dedicated ones are added
-                    ToolbarKey.TIMESTAMP -> R.drawable.ic_undo_rounded  // placeholder
+                    ToolbarKey.TIMESTAMP -> R.drawable.ic_undo_rounded
                     ToolbarKey.EMOJI_SEARCH -> R.drawable.sym_keyboard_smiley_rounded
+                    // VionBoard: vault key — reuse clipboard icon as placeholder
+                    ToolbarKey.VION_VAULT -> R.drawable.sym_keyboard_clipboard_rounded
                 })
             }
         } }
