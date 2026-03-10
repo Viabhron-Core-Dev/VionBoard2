@@ -56,6 +56,10 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     override fun onLongPressKey(primaryCode: Int) {
         metaOnLongPressKey(primaryCode)
         performHapticFeedback(HapticEvent.KEY_LONG_PRESS)
+        // VionBoard: long-press comma or period opens the snippets panel
+        if (primaryCode == ','.code || primaryCode == '.'.code) {
+            latinIME.launchSnippetsActivity()
+        }
     }
 
     override fun onReleaseKey(primaryCode: Int, withSliding: Boolean) {
@@ -107,6 +111,12 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             // VionBoard: open KeePass vault panel
             KeyCode.VION_VAULT -> {
                 latinIME.launchVaultActivity()
+                return
+            }
+
+            // VionBoard: open coding snippets panel
+            KeyCode.VION_SNIPPETS -> {
+                latinIME.launchSnippetsActivity()
                 return
             }
 
