@@ -94,6 +94,24 @@ class VionSnippetsActivity : ComponentActivity() {
                 "≠", "≥", "≤", "±", "×", "÷",
                 "€", "£", "¥", "α", "β", "π", "∞", "∑", "√",
             ),
+            "Prompts" to listOf(
+                "Summarize the following in 3 bullet points:",
+                "Fix grammar and rewrite professionally:",
+                "Translate to Spanish:",
+                "Translate to French:",
+                "Explain this like I'm 5:",
+                "Write a commit message for the following changes:",
+                "Find bugs in this code and explain them:",
+                "Refactor this code for readability:",
+                "Write unit tests for this function:",
+                "Continue the following:",
+                "Make this shorter and more concise:",
+                "Make this more formal:",
+                "Make this more casual and friendly:",
+                "Give me 5 alternatives for:",
+                "What are the pros and cons of:",
+                "Step-by-step instructions for:",
+            ),
         )
 
         val CATEGORIES: List<String> = BUILTIN.keys.toList()
@@ -248,6 +266,84 @@ fun SnippetsPanel(onType: (String) -> Unit, onDismiss: () -> Unit) {
                 )
             },
             confirmButton = {
+                TextButton(onClick = {
+                    val currentCat = categories[selectedTab]
+                    if (newSnippetText.isNotBlank()) {
+                        customSnippets[currentCat]?.add(newSnippetText.trim())
+                        VionSnippetsActivity.saveCustom(
+                            prefs, currentCat,
+                            customSnippets[currentCat]?.toList() ?: emptyList()
+                        )
+                    }
+                    showAddDialog  = false
+                    newSnippetText = ""
+                }) { Text("Add", color = ORANGE) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddDialog = false; newSnippetText = "" }) {
+                    Text("Cancel", color = MUTED)
+                }
+            },
+            containerColor = SURFACE,
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun SnippetChip(
+    text: String,
+    isCustom: Boolean,
+    orange: Color,
+    surface: Color,
+    textColor: Color,
+    onClick: () -> Unit,
+    onDelete: (() -> Unit)?,
+) {
+    var showDelete by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(surface, RoundedCornerShape(8.dp))
+            .border(
+                1.dp,
+                if (isCustom) orange.copy(alpha = 0.35f) else Color.Transparent,
+                RoundedCornerShape(8.dp)
+            )
+            .then(
+                if (onDelete != null)
+                    Modifier.combinedClickable(
+                        onClick     = onClick,
+                        onLongClick = { showDelete = !showDelete }
+                    )
+                else
+                    Modifier.clickable(onClick = onClick)
+            )
+            .padding(horizontal = 12.dp, vertical = 9.dp),
+        verticalAlignment    = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            text       = text,
+            color      = textColor,
+            fontSize   = 13.sp,
+            fontFamily = FontFamily.Monospace,
+            maxLines   = 3,
+            overflow   = TextOverflow.Ellipsis,
+            modifier   = Modifier.weight(1f),
+        )
+        if (showDelete && onDelete != null) {
+            TextButton(
+                onClick        = { onDelete(); showDelete = false },
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+            ) {
+                Text("✕", color = Color(0xFFFF4444), fontSize = 14.sp)
+            }
+        }
+    }
+}
+          confirmButton = {
                 TextButton(onClick = {
                     val currentCat = categories[selectedTab]
                     if (newSnippetText.isNotBlank()) {
