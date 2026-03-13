@@ -40,12 +40,15 @@ class VionVaultActivity : ComponentActivity() {
         setContent {
             VionVaultScreen(
                 onTypeText = { text -> typeText(text) },
-                onClose    = { finish() }
+                onClose    = { finish() },
+                onResetAutoLock = { VionVaultManager.resetAutoLock(this) }
             )
         }
     }
 
     private fun typeText(text: String) {
+        // Schedule clipboard clear before finishing (runs on main looper after activity closes)
+        VionVaultManager.scheduleClipboardClear(this)
         startService(
             Intent(this, LatinIME::class.java)
                 .setAction(VAULT_DONE_ACTION)
@@ -67,12 +70,17 @@ private val VaultError   = Color(0xFFFF5555)
 @Composable
 fun VionVaultScreen(
     onTypeText: (String) -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    onResetAutoLock: () -> Unit = {},
 ) {
-    val context  = LocalContext.current
+    val context   = LocalContext.current
     val vaultFile = remember { VionVaultManager.loadVaultFile(context) }
-    // Use a state so the unlock screen can trigger a recompose into the entry list
-    var unlocked by remember { mutableStateOf(VionVaultManager.isUnlocked) }
+    var unlocked  by remember { mutableStateOf(VionVaultManager.isUnlocked) }
+
+    // Reset auto-lock whenever vault becomes unlocked
+    LaunchedEffect(unlocked) {
+        if (unlocked) onResetAutoLock()
+    }
 
     Box(
         modifier = Modifier
@@ -82,13 +90,14 @@ fun VionVaultScreen(
         when {
             vaultFile == null -> NoVaultScreen(onClose = onClose)
             !unlocked         -> UnlockScreen(
-                vaultFile = vaultFile,
+                vaultFile  = vaultFile,
                 onUnlocked = { unlocked = true },
                 onClose    = onClose
             )
             else              -> VaultEntryList(
-                onTypeText = onTypeText,
-                onClose    = onClose
+                onTypeText      = onTypeText,
+                onClose         = onClose,
+                onResetAutoLock = onResetAutoLock
             )
         }
     }
@@ -193,7 +202,8 @@ fun UnlockScreen(
 @Composable
 fun VaultEntryList(
     onTypeText: (String) -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    onResetAutoLock: () -> Unit = {},
 ) {
     var query         by remember { mutableStateOf("") }
     var selectedEntry by remember { mutableStateOf<VionVaultEntry?>(null) }
@@ -277,7 +287,10 @@ fun VaultEntryList(
                     VaultEntryRow(
                         entry      = entry,
                         isSelected = entry == selectedEntry,
-                        onClick    = { selectedEntry = if (selectedEntry == entry) null else entry }
+                        onClick    = {
+                            selectedEntry = if (selectedEntry == entry) null else entry
+                            onResetAutoLock()
+                        }
                     )
                 }
             }
@@ -324,8 +337,8 @@ fun VaultEntryRow(
 @Composable
 fun VaultChip(label: String, onClick: () -> Unit) {
     Surface(
-        shape  = RoundedCornerShape(16.dp),
-        color  = VaultAccent,
+        shape    = RoundedCornerShape(16.dp),
+        color    = VaultAccent,
         modifier = Modifier.clickable(onClick = onClick)
     ) {
         Text(
