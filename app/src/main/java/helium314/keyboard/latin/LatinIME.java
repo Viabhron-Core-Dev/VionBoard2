@@ -85,6 +85,8 @@ import helium314.keyboard.latin.utils.SubtypeState;
 import helium314.keyboard.latin.utils.ToolbarMode;
 import helium314.keyboard.latin.VionVaultActivity;
 import helium314.keyboard.latin.VionSnippetsActivity;
+import helium314.keyboard.latin.VionProtectedSuggestions;
+import helium314.keyboard.latin.VionShortcutExpander;
 import helium314.keyboard.settings.SettingsActivity2;
 import kotlin.Unit;
 
@@ -575,6 +577,10 @@ public class LatinIME extends InputMethodService implements
 
         StatsUtils.onCreate(mSettings.getCurrent(), mRichImm);
         VionVaultManager.INSTANCE.init(this);
+        VionProtectedSuggestions.INSTANCE.init(this);
+        VionShortcutExpander.INSTANCE.init(this);
+        // Set callback for protected suggestion auth success
+        VionProtectedSuggestions.INSTANCE.setOnTextReady(text -> onTextInput(text));
     }
 
     private void loadSettings() {
@@ -1517,6 +1523,13 @@ public class LatinIME extends InputMethodService implements
     // interface
     @Override
     public void pickSuggestionManually(final SuggestedWordInfo suggestionInfo) {
+        // VionBoard: Check if this is a protected suggestion that needs biometric auth
+        final String typedWord = mInputLogic.mWordComposer.typedWord;
+        if (VionProtectedSuggestions.INSTANCE.handleSuggestionTap(this, suggestionInfo.mWord, typedWord)) {
+            // Protected suggestion intercepted — auth flow is now in progress
+            return;
+        }
+        
         final InputTransaction completeInputTransaction = mInputLogic.onPickSuggestionManually(
                 mSettings.getCurrent(), suggestionInfo,
                 mKeyboardSwitcher.getKeyboardShiftMode(),

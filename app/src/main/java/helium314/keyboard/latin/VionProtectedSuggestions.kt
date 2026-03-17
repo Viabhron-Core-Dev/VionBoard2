@@ -44,6 +44,11 @@ object VionProtectedSuggestions {
      */
     @Volatile var onTextReady: ((plaintext: String) -> Unit)? = null
 
+    /** Sets the callback for text insertion after successful auth. */
+    fun setOnTextReady(callback: (String) -> Unit) {
+        onTextReady = callback
+    }
+
     /** Must be called once on keyboard init (LatinIME.onCreate). */
     fun init(context: Context) {
         dao = ProtectedEntriesDao.getInstance(context)
