@@ -42,12 +42,15 @@ object VionProtectedSuggestions {
      * Callback invoked by BiometricBridgeActivity after successful auth.
      * Set by LatinIME to handle text insertion.
      */
-    @Volatile var onTextReady: ((plaintext: String) -> Unit)? = null
+    @Volatile private var _onTextReady: ((plaintext: String) -> Unit)? = null
 
     /** Sets the callback for text insertion after successful auth. */
     fun setOnTextReady(callback: (String) -> Unit) {
-        onTextReady = callback
+        _onTextReady = callback
     }
+
+    /** Gets the current callback. */
+    fun getOnTextReady(): ((String) -> Unit)? = _onTextReady
 
     /** Must be called once on keyboard init (LatinIME.onCreate). */
     fun init(context: Context) {
@@ -131,7 +134,7 @@ object VionProtectedSuggestions {
         val d = dao ?: run { pendingTrigger = null; return }
         val plaintext = d.revealProtectedText(trigger)
         if (!plaintext.isNullOrEmpty()) {
-            onTextReady?.invoke(plaintext)
+            getOnTextReady()?.invoke(plaintext)
         }
         pendingTrigger = null
     }
