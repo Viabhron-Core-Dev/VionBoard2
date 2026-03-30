@@ -7,6 +7,11 @@ plugins {
     kotlin("plugin.compose") version "1.5.11"
 }
 
+repositories {
+    google()
+    mavenCentral()
+}
+
 android {
     compileSdk = 35
 
