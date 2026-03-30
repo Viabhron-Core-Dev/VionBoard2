@@ -133,7 +133,6 @@ dependencies {
     implementation("com.github.skydoves:colorpicker-compose:1.1.3")
 
     // VionBoard Phase 8 — KeePass KDBX reading
-    // artifact was renamed from io.github.anvell:kotpass to app.keemobile:kotpass
     implementation("app.keemobile:kotpass:0.13.0")
 
     // test
