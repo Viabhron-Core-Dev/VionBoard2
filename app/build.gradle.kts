@@ -2,9 +2,14 @@ import com.android.build.api.variant.ApplicationVariant
 
 plugins {
     id("com.android.application")
-    kotlin("android")
-    kotlin("plugin.serialization") version "2.2.21"
-    kotlin("plugin.compose") version "2.2.21"
+    kotlin("android") version "1.9.22"
+    kotlin("plugin.serialization") version "1.9.22"
+    kotlin("plugin.compose") version "1.5.11"
+}
+
+repositories {
+    google()
+    mavenCentral()
 }
 
 android {
@@ -75,7 +80,7 @@ android {
             path = File("src/main/jni/Android.mk")
         }
     }
-    ndkVersion = "28.0.13004108"
+    ndkVersion = "26.2.11394342"
 
     packaging {
         jniLibs {
@@ -124,7 +129,7 @@ dependencies {
 
     // compose
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
-    implementation(platform("androidx.compose:compose-bom:2025.11.01"))
+    implementation(platform("androidx.compose:compose-bom:2024.06.00"))
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
@@ -133,7 +138,6 @@ dependencies {
     implementation("com.github.skydoves:colorpicker-compose:1.1.3")
 
     // VionBoard Phase 8 — KeePass KDBX reading
-    // artifact was renamed from io.github.anvell:kotpass to app.keemobile:kotpass
     implementation("app.keemobile:kotpass:0.13.0")
 
     // test
