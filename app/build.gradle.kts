@@ -1,7 +1,7 @@
 import com.android.build.api.variant.ApplicationVariant
 
 plugins {
-    id("com.android.application")
+    id("com.android.application") version "8.7.0"
     kotlin("android") version "1.9.22"
     kotlin("plugin.serialization") version "1.9.22"
     kotlin("plugin.compose") version "1.5.11"
