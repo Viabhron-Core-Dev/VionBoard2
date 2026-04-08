@@ -62,7 +62,6 @@ android {
             if (variant.buildType == "debug") {
                 variant.androidResources.ignoreAssetsPatterns = listOf("main_ro.dict")
                 variant.proguardFiles = emptyList()
-                //noinspection ProguardAndroidTxtUsage
                 variant.proguardFiles.add(project.layout.buildDirectory.file(getDefaultProguardFile("proguard-android.txt").absolutePath))
                 variant.proguardFiles.add(project.layout.buildDirectory.file(project.buildFile.parent + "/proguard-rules.pro"))
             }
