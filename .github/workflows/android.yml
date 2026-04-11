@@ -19,7 +19,7 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: gradle
+        cache: 'none'  # Disable Gradle caching to avoid corruption
 
     - name: Use Node.js 24
       uses: actions/setup-node@v4
