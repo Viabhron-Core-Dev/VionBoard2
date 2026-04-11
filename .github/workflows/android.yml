@@ -35,11 +35,14 @@ jobs:
     - name: Clear Gradle cache
       run: ./gradlew cleanBuildCache
 
-    - name: Build Debug APK
-      run: ./gradlew assembleDebug --stacktrace --info
+    - name: Build Debug APK with maximum diagnostics
+      run: ./gradlew assembleDebug --stacktrace --info --scan --console=plain --warning-mode=all --no-daemon --no-parallel
 
-    - name: Upload APK
+    - name: Upload diagnostics if build fails
+      if: failure()
       uses: actions/upload-artifact@v4
       with:
-        name: vionboard-debug-apk
-        path: app/build/outputs/apk/debug/*.apk
+        name: build-diagnostics
+        path: 
+          app/build/reports/
+          build/reports/
