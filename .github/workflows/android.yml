@@ -26,6 +26,9 @@ jobs:
       with:
         node-version: '24'
 
+    - name: Force Node.js 24 for all actions
+      run: echo "FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true" >> $GITHUB_ENV
+
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
